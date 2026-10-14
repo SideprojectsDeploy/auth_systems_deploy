@@ -13,7 +13,7 @@ app.use(express.urlencoded({extended: true, limit: "16kb"}));
 app.use(cors(
   {
     origin: process.env.CORS_ORIGIN,
-    credentials: true
+    credentials: process.env.CORS_CREDENTIALS
   }
 ));
 app.use(cookieParser());
