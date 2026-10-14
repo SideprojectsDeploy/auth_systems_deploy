@@ -2,6 +2,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { ApiError } from "./utils/ApiError.js";
+import { ApiResponse } from "./utils/ApiResponse.js";
 dotenv.config();
 
 const app = express();
@@ -19,7 +20,6 @@ app.use(express.static("../public"));
 
 // routes
 import {router as userRouter} from "./routes/user.routes.js";
-import { ApiResponse } from "./utils/ApiResponse.js";
 
 app.use("/api/v1/users", userRouter);
 

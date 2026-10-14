@@ -43,7 +43,7 @@ sessionSchema.methods.generateAccessToken = async function(){
   )
 }
 
-sessionSchema.methods.generateRefreshToken = function(){
+sessionSchema.methods.generateRefreshToken = async function(){
   const userId = this.user_id?._id ?? this.user_id;
   return jwt.sign(
     {
