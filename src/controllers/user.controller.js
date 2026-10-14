@@ -40,7 +40,8 @@ const registerUser = asyncHandler(async (req, res, next) => {
       {
         accessToken,
         username,
-        email
+        email,
+        _id: user._id
       }
     )
   );
@@ -76,7 +77,8 @@ const loginUser = asyncHandler(async (req, res, next) => {
       {
         accessToken,
         username: isUser.username,
-        email: isUser.email
+        email: isUser.email,
+        _id: isUser._id
       }
     )
   );
@@ -131,7 +133,7 @@ const logoutUserAll = asyncHandler(async (req, res, next) => {
   }
 
   await Session.deleteMany({
-    user_id: decodedRefreshToken._id
+    user_id: session.user_id
   });
 
   res.clearCookie("refreshToken", refreshTokenOptions);
@@ -139,6 +141,52 @@ const logoutUserAll = asyncHandler(async (req, res, next) => {
     new ApiResponse(200, {}, "Logged out from all devices succesfully.")
   )
 })
+
+const refresh = asyncHandler(async (req, res, next) => {
+
+  const refreshToken = req.cookies?.refreshToken;
+  if(!refreshToken){
+    return next(new ApiError(401, "Refresh token not found"));
+  }
+
+  const decodedRefreshToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+  
+  const session = await Session.findById(decodedRefreshToken.session_id);
+  if(!session){
+    return next(new ApiError(401, "Session not found"));
+  }
+
+  const isValidSession = await bcrypt.compare(refreshToken, session.refreshTokenHash);
+
+  if(!isValidSession){
+    return next(new ApiError(401, "Invalid session"));
+  }
+
+  const {user_id} = await session.populate("user_id", "-passwordHash");
+  const accessToken = await session.generateAccessToken();
+
+  const newRefreshToken = session.generateRefreshToken();
+  await session.saveRefreshToken(newRefreshToken);
+
+  res.cookie("refreshToken", newRefreshToken, refreshTokenOptions);
+  res.status(200).json(
+    new ApiResponse(200, 
+      {
+        accessToken,
+        username: user_id.username,
+        email: user_id.email,
+        _id: user_id._id,
+      }
+    )
+  );
+})
+
+const getMe = asyncHandler(async (req, res) => {
+  return res.status(200).json(
+    new ApiResponse(200, req.user, "User fetched successfully")
+  );
+});
+
 
 export {
   registerUser,
