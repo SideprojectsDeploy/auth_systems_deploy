@@ -17,7 +17,6 @@ app.use(cors(
   }
 ));
 app.use(cookieParser());
-app.use(express.static("../public"));
 
 // routes
 import {router as userRouter} from "./routes/user.routes.js";
