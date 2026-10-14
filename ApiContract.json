@@ -1,0 +1,116 @@
+
+{
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "basePath",
+      "value": "/api/v1/users"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "raw",
+          "raw": {
+            "username": "testuser",
+            "email": "test@example.com",
+            "password": "Test@123"
+          },
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}{{basePath}}/register"
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "raw",
+          "raw": {
+            "email": "test@example.com",
+            "password": "Test@123"
+          },
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}{{basePath}}/loginUser"
+      }
+    },
+    {
+      "name": "Refresh",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}{{basePath}}/refresh"
+      }
+    },
+    {
+      "name": "Get Me",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}{{basePath}}/me"
+      }
+    },
+    {
+      "name": "Update Profile",
+      "request": {
+        "method": "PATCH",
+        "body": {
+          "mode": "raw",
+          "raw": {
+            "newUsername": "updateduser",
+            "newEmail": "updated@example.com",
+            "newPassword": "Updated@123"
+          },
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}{{basePath}}/me"
+      }
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}{{basePath}}/logoutUser"
+      }
+    },
+    {
+      "name": "Logout All Sessions",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}{{basePath}}/logoutUserAll"
+      }
+    }
+  ]
+}

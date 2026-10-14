@@ -10,7 +10,7 @@ const refreshTokenOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax",
-  maxAge: Number(process.env.REFRESH_TOKEN_EXPIRY_MILISECONDS)
+  maxAge: 10*24*60*60*1000
 }
 
 const registerUser = asyncHandler(async (req, res, next) => {
@@ -165,7 +165,7 @@ const refresh = asyncHandler(async (req, res, next) => {
   const { user_id } = await session.populate("user_id", "-passwordHash");
   const accessToken = await session.generateAccessToken();
 
-  const newRefreshToken = session.generateRefreshToken();
+  const newRefreshToken = await session.generateRefreshToken();
   await session.saveRefreshToken(newRefreshToken);
 
   res.cookie("refreshToken", newRefreshToken, refreshTokenOptions);
@@ -195,7 +195,7 @@ const updateUser = asyncHandler(async (req, res) => {
   if (!fields.every(field => field && field.trim())) {
     throw new ApiError(400, "All fields are required");
   }
-  
+
   const updatedUser = await User.findByIdAndUpdate(
     req.user._id,
     {

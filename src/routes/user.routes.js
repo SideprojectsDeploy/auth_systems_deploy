@@ -5,13 +5,13 @@ import {verifyJWT} from "../middlewares/auth.middleware.js";
 const router = Router();
 
 router.route("/register").post(registerUser);
-router.route("/loginUser").post(loginUser);
+router.route("/login").post(loginUser);
 
-router.route("/logoutUser").post(verifyJWT, logoutUser);
-router.route("/logoutUserAll").post(verifyJWT, logoutUserAll);
+router.route("/logout").post(verifyJWT, logoutUser);
+router.route("/logoutAll").post(verifyJWT, logoutUserAll);
 
 router.route("/refresh").get(refresh);
-router.route("/users/:id")
+router.route("/me")
   .get(verifyJWT, getMe)
   .patch(verifyJWT, updateUser);
 
