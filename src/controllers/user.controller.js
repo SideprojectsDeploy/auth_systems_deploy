@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import bcrypt from "bcrypt";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import jwt from "jsonwebtoken";
 
 const refreshTokenOptions = {
   httpOnly: true,
@@ -19,7 +20,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
   const userLogged = await User.findOne({
     $or: [{ username }, { email }]
   });
-  
+
   if(userLogged){
     return next(new ApiError(409, "User already exists"));
   }
@@ -79,6 +80,64 @@ const loginUser = asyncHandler(async (req, res, next) => {
       }
     )
   );
+})
+
+const logoutUser = asyncHandler(async (req, res, next) => {
+
+  const refreshToken = req.cookies?.refreshToken;
+  if(!refreshToken){
+    return next(new ApiError(401, "Refresh token not found."));
+  }
+
+  const decodedRefreshToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+  const session = await Session.findById(decodedRefreshToken.session_id);
+
+  if(!session){
+    return next(new ApiError(401, "Session not found."));
+  }
+
+  const isValidRefreshToken = await bcrypt.compare(refreshToken, session.refreshTokenHash);
+  if(!isValidRefreshToken){
+    return next(new ApiError(401, "Invalid refresh token."));
+  }
+
+  await session.deleteOne();
+
+  res.clearCookie("refreshToken", refreshTokenOptions);
+
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Logged out succesfully.")
+  )
+})
+
+const logoutUserAll = asyncHandler(async (req, res, next) => {
+
+  const refreshToken = req.cookies?.refreshToken;
+  if(!refreshToken){
+    return next(new ApiError(401, "refresh token not found"));
+  }
+
+  const decodedRefreshToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+  const session = await Session.findById(decodedRefreshToken.session_id);
+
+  if(!session){
+    return next(new ApiError(401, "session not found"));
+  }
+
+  const isValidRefreshToken = await bcrypt.compare(refreshToken, session.refreshTokenHash);
+  if(!isValidRefreshToken){
+    return next(new ApiError(401, "Invalid refresh token"));
+  }
+
+  await Session.deleteMany({
+    user_id: decodedRefreshToken._id
+  });
+
+  res.clearCookie("refreshToken", refreshTokenOptions);
+  return res.status(200).json(
+    new ApiResponse(200, {}, "Logged out from all devices succesfully.")
+  )
 })
 
 export {
