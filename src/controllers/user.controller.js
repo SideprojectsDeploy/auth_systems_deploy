@@ -15,17 +15,17 @@ const refreshTokenOptions = {
 
 const registerUser = asyncHandler(async (req, res, next) => {
 
-  const {username, email, password} = req.body;
+  const { username, email, password } = req.body;
 
   const userLogged = await User.findOne({
     $or: [{ username }, { email }]
   });
 
-  if(userLogged){
+  if (userLogged) {
     return next(new ApiError(409, "User already exists"));
   }
 
-  const user = await createUser({username, email, password});
+  const user = await createUser({ username, email, password });
   const session = await createSession({
     userAgent: req.get("User-Agent"), ip: req.ip, user_id: user._id
   });
@@ -36,7 +36,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
 
   res.cookie("refreshToken", refreshToken, refreshTokenOptions);
   res.status(200).json(
-    new ApiResponse(200, 
+    new ApiResponse(200,
       {
         accessToken,
         username,
@@ -49,13 +49,13 @@ const registerUser = asyncHandler(async (req, res, next) => {
 
 const loginUser = asyncHandler(async (req, res, next) => {
 
-  const {email, password} = req.body;
-  const isUser = await User.findOne({email});
+  const { email, password } = req.body;
+  const isUser = await User.findOne({ email });
 
-  if(!isUser){
+  if (!isUser) {
     return next(new ApiError(401, "User not registered."));
   }
-  if(!(await bcrypt.compare(password, isUser.passwordHash))){
+  if (!(await bcrypt.compare(password, isUser.passwordHash))) {
     return next(new ApiError(401, "Password invalid"));
   }
 
@@ -73,7 +73,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
 
   res.cookie("refreshToken", refreshToken, refreshTokenOptions);
   res.status(200).json(
-    new ApiResponse(200, 
+    new ApiResponse(200,
       {
         accessToken,
         username: isUser.username,
@@ -87,7 +87,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
 const logoutUser = asyncHandler(async (req, res, next) => {
 
   const refreshToken = req.cookies?.refreshToken;
-  if(!refreshToken){
+  if (!refreshToken) {
     return next(new ApiError(401, "Refresh token not found."));
   }
 
@@ -95,12 +95,12 @@ const logoutUser = asyncHandler(async (req, res, next) => {
 
   const session = await Session.findById(decodedRefreshToken.session_id);
 
-  if(!session){
+  if (!session) {
     return next(new ApiError(401, "Session not found."));
   }
 
   const isValidRefreshToken = await bcrypt.compare(refreshToken, session.refreshTokenHash);
-  if(!isValidRefreshToken){
+  if (!isValidRefreshToken) {
     return next(new ApiError(401, "Invalid refresh token."));
   }
 
@@ -116,19 +116,19 @@ const logoutUser = asyncHandler(async (req, res, next) => {
 const logoutUserAll = asyncHandler(async (req, res, next) => {
 
   const refreshToken = req.cookies?.refreshToken;
-  if(!refreshToken){
+  if (!refreshToken) {
     return next(new ApiError(401, "refresh token not found"));
   }
 
   const decodedRefreshToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
   const session = await Session.findById(decodedRefreshToken.session_id);
 
-  if(!session){
+  if (!session) {
     return next(new ApiError(401, "session not found"));
   }
 
   const isValidRefreshToken = await bcrypt.compare(refreshToken, session.refreshTokenHash);
-  if(!isValidRefreshToken){
+  if (!isValidRefreshToken) {
     return next(new ApiError(401, "Invalid refresh token"));
   }
 
@@ -145,24 +145,24 @@ const logoutUserAll = asyncHandler(async (req, res, next) => {
 const refresh = asyncHandler(async (req, res, next) => {
 
   const refreshToken = req.cookies?.refreshToken;
-  if(!refreshToken){
+  if (!refreshToken) {
     return next(new ApiError(401, "Refresh token not found"));
   }
 
   const decodedRefreshToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-  
+
   const session = await Session.findById(decodedRefreshToken.session_id);
-  if(!session){
+  if (!session) {
     return next(new ApiError(401, "Session not found"));
   }
 
   const isValidSession = await bcrypt.compare(refreshToken, session.refreshTokenHash);
 
-  if(!isValidSession){
+  if (!isValidSession) {
     return next(new ApiError(401, "Invalid session"));
   }
 
-  const {user_id} = await session.populate("user_id", "-passwordHash");
+  const { user_id } = await session.populate("user_id", "-passwordHash");
   const accessToken = await session.generateAccessToken();
 
   const newRefreshToken = session.generateRefreshToken();
@@ -170,7 +170,7 @@ const refresh = asyncHandler(async (req, res, next) => {
 
   res.cookie("refreshToken", newRefreshToken, refreshTokenOptions);
   res.status(200).json(
-    new ApiResponse(200, 
+    new ApiResponse(200,
       {
         accessToken,
         username: user_id.username,
@@ -187,6 +187,34 @@ const getMe = asyncHandler(async (req, res) => {
   );
 });
 
+const updateUser = asyncHandler(async (req, res) => {
+
+  const { newUsername, newEmail, newPassword } = req.body;
+  const fields = [newUsername, newEmail, newPassword];
+
+  if (!fields.every(field => field && field.trim())) {
+    throw new ApiError(400, "All fields are required");
+  }
+  
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        username: newUsername,
+        email: newEmail,
+        passwordHash: await bcrypt.hash(newPassword, 10)
+      }
+    },
+    {
+      new: true,
+      runValidators: true
+    }
+  ).select("-passwordHash");
+
+  return res.status(200).json(
+    new ApiResponse(200, { user: updatedUser }, "User updated succesfully.")
+  )
+})
 
 export {
   registerUser,
